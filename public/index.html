@@ -1,0 +1,347 @@
+<!doctype html>
+<html>
+<head>
+<link rel="icon" href="https://f001.backblazeb2.com/file/nolandcraftworks/jolloradioes.ico?v=1"> 
+<style>
+body, html {
+  height:100%
+}
+body {
+  background:#000;
+  overflow:hidden;
+  color:#00ff72;
+  margin:0;
+  
+}
+::-moz-selection {
+  color: black;
+  background: #00ff72;
+}
+::selection {
+  color: black;
+  background: #00ff72;
+}
+* {
+  outline:none!important;
+  box-sizing:border-box
+}
+span {
+  display:block
+}
+#parent { 
+  display: grid; 
+  grid-template-columns: repeat(2, 1fr); 
+  grid-template-rows: repeat(2, 1fr); 
+  grid-column-gap: 0px;
+  grid-row-gap: 0px; 
+  height:100%;
+}
+#playlist { 
+  grid-area: 1 / 1 / 2 / 2;
+  max-height: 50vh;
+  overflow-Y: scroll;
+  overflow-X: hidden
+} 
+#player { 
+  grid-area: 2 / 1 / 3 / 2;
+  border-top:1px solid #00ff72;
+} 
+#room { 
+  grid-area: 1 / 2 / 2 / 3;
+  border-left:1px solid #00ff72;
+  max-height: 50vh;
+  overflow-Y: scroll;
+  overflow-X: hidden;
+} 
+#chat { 
+  grid-area: 2 / 2 / 3 / 3;
+  border-top:1px solid #00ff72;
+  border-left:1px solid #00ff72;
+} 
+#room, #playlist, textarea {
+  overflow-y: scroll;
+  scrollbar-width: none; 
+  -ms-overflow-style: none; 
+}
+#room::-webkit-scrollbar { 
+  width: 0;
+  height: 0;
+}
+#playlist::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+textarea {
+  width:100%;
+  height:100%;
+  background:transparent;
+  border:none;
+  color:#00ff72;
+  resize:none;
+  padding:0;
+  margin:0
+}
+textarea::-webkit-scrollbar { 
+  width: 0;
+  height: 0;
+}
+* {
+  font-family: 'Consolas', monospace!important;
+  font-size:14px;
+  text-rendering:geometricPrecision   
+}
+#parent > div {
+  padding:3px 5px;
+}
+::placeholder { 
+  color: #009844;
+  opacity: 1; 
+}
+.trackspan {
+  text-decoration:none;
+}
+.trackspan.active::before {
+  content:'>> '
+}
+.disabled {
+  pointer-events:none
+}
+</style>
+</head>
+<body>
+<div id="parent">
+  <div id="player"></div>
+  <div id="playlist"></div>
+  <div id="room"></div>
+  <div id="chat">
+    <textarea class="disabled" id="input" 
+      autocomplete="off" 
+      autocorrect="off" 
+      autocapitalize="off"
+      spellcheck="false" 
+      maxlength="8" placeholder="connecting" /></textarea>
+  </div>
+</div>
+<!-- <canvas id='canvas' width='0' height='0' style="position:absolute;bottom:0;left:0;z-index:-1"></canvas> -->
+<script>
+let connectingtimer = null
+function connectingcheck() {
+  let count = this.count || 0
+  count++
+  if (count > 3) {
+    count = 0
+  }
+  this.count = count
+  input.setAttribute("placeholder", `connecting${".".repeat(count)}`)
+}
+
+
+connectingtimer = setInterval(connectingcheck,360)
+// let canvas = document.getElementById("canvas")
+// let width = window.innerWidth
+// let height = window.innerHeight
+// canvas.width = width
+// canvas.height = height
+let audioplayer = null
+var input = document.getElementById("input")
+let room = document.getElementById("room")
+let playlist = document.getElementById("playlist")
+let player = document.getElementById("player")
+player.insertAdjacentHTML("afterbegin", `
+  <span><span style="display:inline" id="audiostatus">xx</span> <span style="display:inline" id="playerposition">wait</span> | 
+  ${window.location.protocol}//${window.location.host}/radio</span>
+  <span id="playerstatus"></span>
+  <span id="buffering"></span>
+`)
+input.addEventListener("keypress", function(event) {
+  if (event.keyCode === 13) {
+    event.preventDefault()
+    if (!localStorage.getItem("nick")) {
+      input.setAttribute("placeholder", "")
+      let rep = input.value.replace(/[^a-zA-Z0-9]/g, "").toLowerCase().substring(0,8)
+      if (rep.length === 0) {
+        return
+      }
+      input.value = rep
+      localStorage.setItem("nick", rep)
+      send()
+      input.value = ""
+      input.setAttribute("maxlength", "1000")      
+    }
+    else {
+      if (input.value.length === 0) {
+        return
+      }
+      send()
+    }
+  }
+})
+input.addEventListener("input", function() {
+  let rep = input.value.replace(/(?:\r\n|\r|\n)/g, " ")
+  input.value = rep  
+})
+let handler = {
+  promptpassword: () => {
+    console.log("prompt password")
+    input.setAttribute("placeholder", "enter password")
+    if (localStorage.getItem("password")) {
+      sendmessage(localStorage.getItem("password"))
+    }
+  },
+  unlocked: (e) => {
+    localStorage.setItem("password", e)
+    input.setAttribute("placeholder", "")
+  },
+  status: (status) => {
+    let {maxresources, queuesize, processingsize} = status
+    let playerstatus = document.getElementById("playerstatus")
+    playerstatus.innerHTML = `&gt;&gt; m${maxresources}, q${queuesize}, p${processingsize}`
+  },
+  position: (position) => {
+    let playerposition = document.getElementById("playerposition")
+    if (position === null) {
+      playerposition.innerHTML = "ready"
+    }
+    else if (position === undefined) {
+      playerposition.innerHTML = "ready"
+    }
+    else {
+      playerposition.innerHTML = "live"
+    }
+    let active = document.querySelector(".trackspan.active")
+    if (active) {
+      active.classList.remove("active")
+    }
+    active = document.querySelector(`.trackspan[data-uuid="${position}"]`)
+    if (active) {
+      active.classList.add("active")
+    }
+  },
+  messagehistory: (messagehistory) => {
+    for (let i=0;i<messagehistory.length;i++) {
+      handler.message(messagehistory[i])
+    }
+  },
+  message: (message) => {
+    let {nick, chat} = message
+    room.insertAdjacentHTML("beforeend", `<span>&lt;${nick}&gt; ${chat}</span>`)   
+    room.scrollTop = 100000000000    
+  },
+  songhistory: (songhistory) => {
+    for (let i=0;i<songhistory.length;i++) {
+      handler.song(songhistory[i])
+    }
+  },
+  song: (song) => {
+    try {
+      let {url, uuid, status, nick} = song
+      let split = Number(uuid.split("-")[0])
+      let now = (+ new Date())
+      let diff = ((now - split)/1000)
+      if (diff > (60 * 60 * 12)) {
+        // 12h / expired
+        return
+      }
+      playlist.insertAdjacentHTML("afterbegin", `<span class="trackspan" data-uuid="${uuid}" data-status="${status}">${nick}: ${url}</span>`)    
+      playlist.scrollTop = 100000000000  
+    }
+    catch(e) {
+      
+    }
+  }
+}
+let host = window.location.hostname
+const ws = new WebSocket(`ws://${host}:9302`)
+ws.onmessage = (e) => {
+  let data = JSON.parse(e.data)
+  data && data.type && handler[data.type] && handler[data.type](data.data)
+}
+ws.onopen = () => {
+  clearInterval(connectingtimer)
+  input.classList.remove("disabled")
+  input.setAttribute("placeholder", "click here to start audio")
+}
+function sendmessage(message) {
+  ws.send(JSON.stringify({
+    type:"message", data: message
+  }))  
+}
+function send() {
+  let data = input.value
+  input.value = ""
+  sendmessage(data)
+}
+let audiostarted = false
+let audiostatus = document.getElementById("audiostatus")
+let buffering = document.getElementById("buffering")
+let buffertimer = 380
+let buffercheck = function() {
+  let count = this.count || 0
+  count++
+  if (count > 3) {
+    count = 0
+  }
+  this.count = count
+  if (audioplayer.buffered.length === 0) {
+    buffering.innerHTML = `buffering${".".repeat(count)}`
+    buffertimer = 380
+  }
+  else {
+    buffering.innerHTML = ""
+    buffertimer = 2000
+  }
+  if (audioplayer.ended) {
+    buffering.innerHTML = `audio stream error.. retrying..`
+    setTimeout(()=>{
+      audioplayer.pause()
+      audioplayer = null
+      audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
+      audioplayer.play()
+      buffercheck()
+    }, 3000)
+  }
+  else {
+    setTimeout(buffercheck, buffertimer)
+  }
+}
+// let viewmode = 3
+// document.addEventListener("keydown", (e) => {
+//   if ((e.keyCode === 39 || e.keyCode === 37) && e.ctrlKey === true) {
+//     if (e.keyCode === 39) {
+//       viewmode++
+//     }
+//     if (e.keyCode == 37) {
+//       viewmode--
+//     }
+//     if (viewmode < 0) {
+//       viewmode = 4
+//     }
+//     if (viewmode > 4) {
+//       viewmode = 0
+//     }
+//     document.body.dataset.viewmode = viewmode
+//   }
+// })
+input.addEventListener("click", ()=>{
+  if (!audiostarted) {
+    audiostarted = true
+    audiostatus.innerHTML = "&gt;&gt;";
+    audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
+    audioplayer.play()
+    buffercheck()
+    if (!localStorage.getItem("nick")) {
+      input.setAttribute("placeholder", "please type a username then hit enter")
+    }
+    else {
+      input.setAttribute("maxlength", "1000")
+      input.setAttribute("placeholder", "")
+      sendmessage(localStorage.getItem("nick"))
+    }
+  }
+})
+window.addEventListener("resize", ()=> {
+  room.scrollTop = 100000000000 
+})
+</script>
+</body>
+</html>

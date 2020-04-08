@@ -1,0 +1,21 @@
+{
+  "name": "jollo-radio-es",
+  "version": "1.0.0",
+  "description": "minimal radio server and chatroom",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^0.19.2",
+    "lame": "^1.2.4",
+    "node-cron": "^2.0.3",
+    "node-ipc": "^9.1.1",
+    "node-uuid": "^1.4.8",
+    "sqlite3": "^4.1.1",
+    "websocket": "^1.0.31"
+  },
+  "main": "common.js",
+  "devDependencies": {}
+}
