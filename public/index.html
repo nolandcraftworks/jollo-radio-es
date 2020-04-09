@@ -16,11 +16,11 @@ body {
 }
 ::-moz-selection {
   color: black;
-  background: #00ff72;
+  background: #0f7;
 }
 ::selection {
   color: black;
-  background: #00ff72;
+  background: #0f7;
 }
 * {
   outline:none!important;
@@ -102,9 +102,14 @@ textarea::-webkit-scrollbar {
 .trackspan {
   text-decoration:none;
 }
+.trackspan.active {
+  text-decoration:underline
+}
 .trackspan.active::before {
-  content:'>> ';
-  white-space:pre
+  content:'>>';
+  white-space:pre;
+  background:#0f7;
+  color:black;
 }
 .disabled {
   pointer-events:none
