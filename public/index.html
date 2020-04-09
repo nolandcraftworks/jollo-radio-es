@@ -247,6 +247,7 @@ let handler = {
     for (let i=0;i<songhistory.length;i++) {
       handler.song(songhistory[i])
     }
+    playlist.scrollTop = 0  
   },
   song: (song) => {
     try {
@@ -259,7 +260,6 @@ let handler = {
         return
       }
       playlist.insertAdjacentHTML("afterbegin", `<span class="trackspan" data-uuid="${uuid}" data-status="${status}">&lt;${nick}&gt;&nbsp;${url}</span>`)    
-      playlist.scrollTop = 100000000000  
     }
     catch(e) {
       
