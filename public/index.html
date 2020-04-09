@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<meta charset="utf-8" />
 <link rel="icon" href="https://f001.backblazeb2.com/file/nolandcraftworks/jolloradioes.ico?v=1"> 
 <style>
 body, html {
@@ -143,6 +144,7 @@ connectingtimer = setInterval(connectingcheck,360)
 // canvas.width = width
 // canvas.height = height
 let audioplayer = null
+audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
 var input = document.getElementById("input")
 let room = document.getElementById("room")
 let playlist = document.getElementById("playlist")
@@ -326,7 +328,6 @@ input.addEventListener("click", ()=>{
   if (!audiostarted) {
     audiostarted = true
     audiostatus.innerHTML = "&gt;&gt;";
-    audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
     audioplayer.play()
     buffercheck()
     if (!localStorage.getItem("nick")) {
