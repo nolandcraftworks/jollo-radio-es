@@ -199,6 +199,7 @@ input.addEventListener("input", function() {
   let rep = input.value.replace(/(?:\r\n|\r|\n)/g, " ")
   input.value = rep  
 })
+let finishedloadinghistory = false
 let handler = {
   promptpassword: () => {
     console.log("prompt password")
@@ -237,14 +238,21 @@ let handler = {
     }
   },
   messagehistory: (messagehistory) => {
+    finishedloadinghistory = false
     for (let i=0;i<messagehistory.length;i++) {
       handler.message(messagehistory[i])
     }
+    finishedloadinghistory = true
   },
   message: (message) => {
     let {nick, chat} = message
-    room.insertAdjacentHTML("beforeend", `<span>&lt;${nick}&gt; ${chat}</span>`)   
-    room.scrollTop = 100000000000    
+    room.insertAdjacentHTML("beforeend", `<span>&lt;${nick}&gt; ${chat}</span>`)
+    if (!finishedloadinghistory) {
+      room.scrollTop = 100000000000
+    }
+    if (finishedloadinghistory && (room.scrollTop === (room.scrollHeight - room.offsetHeight))) {
+      room.scrollTop = 100000000000
+    }
   },
   songhistory: (songhistory) => {
     for (let i=0;i<songhistory.length;i++) {
