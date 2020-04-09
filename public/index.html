@@ -103,7 +103,8 @@ textarea::-webkit-scrollbar {
   text-decoration:none;
 }
 .trackspan.active::before {
-  content:'>> '
+  content:'>> ';
+  white-space:pre
 }
 .disabled {
   pointer-events:none
@@ -247,7 +248,7 @@ let handler = {
         // 12h / expired
         return
       }
-      playlist.insertAdjacentHTML("afterbegin", `<span class="trackspan" data-uuid="${uuid}" data-status="${status}">${nick}: ${url}</span>`)    
+      playlist.insertAdjacentHTML("afterbegin", `<span class="trackspan" data-uuid="${uuid}" data-status="${status}">${nick}:&nbsp;${url}</span>`)    
       playlist.scrollTop = 100000000000  
     }
     catch(e) {
