@@ -260,7 +260,7 @@ ws.onmessage = (e) => {
 ws.onopen = () => {
   clearInterval(connectingtimer)
   input.classList.remove("disabled")
-  input.setAttribute("placeholder", "click here to start audio")
+  input.setAttribute("placeholder", "double click here to start audio")
 }
 function sendmessage(message) {
   ws.send(JSON.stringify({
@@ -323,55 +323,28 @@ let buffercheck = function() {
 //     document.body.dataset.viewmode = viewmode
 //   }
 // })
-
-let audiofailed = false
-let audioinitfinalize = () => {
-  buffercheck()
-  input.value = ""
-  if (!localStorage.getItem("nick")) {
-    input.setAttribute("placeholder", "please type a username then hit enter")
-  }
-  else {
-    input.setAttribute("maxlength", "1000")
-    input.setAttribute("placeholder", "")
-    sendmessage(localStorage.getItem("nick"))
-  }
-}
-
+let clickcount = 0
 input.addEventListener("click", ()=>{
-  if (!audiostarted && !audiofailed) {
+  if (clickcount === 0) {
+    clickcount = 1
+    return
+  }
+  if (!audiostarted && clickcount === 1) {
     audiostarted = true
     audiostatus.innerHTML = "&gt;&gt;";
-    try {
-      audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
-      audioplayer.play()
-      audioinitfinalize()
-    }
-    catch(e) {
-      console.error(e)
-      console.log("audio not autoplaying maybe on firefox 66-70")
-      input.value = ""
-      if (!audioplayer) {
-        console.log("stream likely offline")
-        input.setAttribute("placeholder", "error starting audio.. stream likely offline")
-      }
-      else {
-        audiofailed = true
-        input.setAttribute("placeholder", "error starting audio, please type the letter z")
-      }
-    }
-  }
-})
-
-input.addEventListener("keypress", ()=>{
-  if (audiofailed) {
-    audiostarted = true
-    audiofailed = false
+    audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
     audioplayer.play()
-    audioinitfinalize()    
+    buffercheck()
+    if (!localStorage.getItem("nick")) {
+      input.setAttribute("placeholder", "please type a username then hit enter")
+    }
+    else {
+      input.setAttribute("maxlength", "1000")
+      input.setAttribute("placeholder", "")
+      sendmessage(localStorage.getItem("nick"))
+    }
   }
 })
-
 window.addEventListener("resize", ()=> {
   room.scrollTop = 100000000000 
 })
