@@ -144,7 +144,6 @@ connectingtimer = setInterval(connectingcheck,360)
 // canvas.width = width
 // canvas.height = height
 let audioplayer = null
-audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
 var input = document.getElementById("input")
 let room = document.getElementById("room")
 let playlist = document.getElementById("playlist")
@@ -324,22 +323,55 @@ let buffercheck = function() {
 //     document.body.dataset.viewmode = viewmode
 //   }
 // })
+
+let audiofailed = false
+let audioinitfinalize = () => {
+  buffercheck()
+  input.value = ""
+  if (!localStorage.getItem("nick")) {
+    input.setAttribute("placeholder", "please type a username then hit enter")
+  }
+  else {
+    input.setAttribute("maxlength", "1000")
+    input.setAttribute("placeholder", "")
+    sendmessage(localStorage.getItem("nick"))
+  }
+}
+
 input.addEventListener("click", ()=>{
-  if (!audiostarted) {
+  if (!audiostarted && !audiofailed) {
     audiostarted = true
     audiostatus.innerHTML = "&gt;&gt;";
-    audioplayer.play()
-    buffercheck()
-    if (!localStorage.getItem("nick")) {
-      input.setAttribute("placeholder", "please type a username then hit enter")
+    try {
+      audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
+      audioplayer.play()
+      audioinitfinalize()
     }
-    else {
-      input.setAttribute("maxlength", "1000")
-      input.setAttribute("placeholder", "")
-      sendmessage(localStorage.getItem("nick"))
+    catch(e) {
+      console.error(e)
+      console.log("audio not autoplaying maybe on firefox 66-70")
+      input.value = ""
+      if (!audioplayer) {
+        console.log("stream likely offline")
+        input.setAttribute("placeholder", "error starting audio.. stream likely offline")
+      }
+      else {
+        audiofailed = true
+        input.setAttribute("placeholder", "error starting audio, please type the letter z")
+      }
     }
   }
 })
+
+input.addEventListener("keypress", ()=>{
+  if (audiofailed) {
+    audiostarted = true
+    audiofailed = false
+    audioplayer.play()
+    audioinitfinalize()    
+  }
+})
+
 window.addEventListener("resize", ()=> {
   room.scrollTop = 100000000000 
 })
