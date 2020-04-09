@@ -141,7 +141,16 @@ function connectingcheck() {
   input.setAttribute("placeholder", `connecting${".".repeat(count)}`)
 }
 
-
+function nickfollowup() {
+  if (!localStorage.getItem("nick")) {
+    input.setAttribute("placeholder", "please type a username then hit enter")
+  }
+  else {
+    input.setAttribute("maxlength", "1000")
+    input.setAttribute("placeholder", "")
+    sendmessage(localStorage.getItem("nick"))
+  }
+}
 connectingtimer = setInterval(connectingcheck,360)
 // let canvas = document.getElementById("canvas")
 // let width = window.innerWidth
@@ -159,6 +168,7 @@ player.insertAdjacentHTML("afterbegin", `
   <span id="playerstatus"></span>
   <span id="buffering"></span>
 `)
+
 input.addEventListener("keypress", function(event) {
   if (event.keyCode === 13) {
     event.preventDefault()
@@ -256,17 +266,51 @@ let handler = {
     }
   }
 }
+
+let audiostarted = false
 let host = window.location.hostname
-const ws = new WebSocket(`ws://${host}:9302`)
-ws.onmessage = (e) => {
-  let data = JSON.parse(e.data)
-  data && data.type && handler[data.type] && handler[data.type](data.data)
+let ws
+let trybadcomm
+let reconnectbadcomm
+
+function startwebsocket() {
+  playlist.innerHTML = ""
+  room.innerHTML = ""
+  ws = new WebSocket(`ws://${host}:9302`)
+  ws.onmessage = (e) => {
+    let data = JSON.parse(e.data)
+    data && data.type && handler[data.type] && handler[data.type](data.data)
+  }
+  ws.onopen = () => {
+    clearInterval(connectingtimer)
+    input.classList.remove("disabled")
+    if (!audiostarted) {
+      input.setAttribute("placeholder", "double click here to start audio")
+    }
+    else {
+      nickfollowup()
+    }
+  }
+  trybadcomm = null
+  trybadcomm = setInterval(function() {
+    if (ws.readyState !== 1) {
+      ws.close()
+      reconnectbadcomm()
+    }
+  }, 4000)
+  reconnectbadcomm = null
+  reconnectbadcomm = function() {
+    clearInterval(trybadcomm)
+    input.setAttribute("placeholder", "reconnecting...")
+    setTimeout(function() {
+      startwebsocket()
+    }, 2000)
+  }  
 }
-ws.onopen = () => {
-  clearInterval(connectingtimer)
-  input.classList.remove("disabled")
-  input.setAttribute("placeholder", "double click here to start audio")
-}
+startwebsocket()
+
+
+
 function sendmessage(message) {
   ws.send(JSON.stringify({
     type:"message", data: message
@@ -277,7 +321,6 @@ function send() {
   input.value = ""
   sendmessage(data)
 }
-let audiostarted = false
 let audiostatus = document.getElementById("audiostatus")
 let buffering = document.getElementById("buffering")
 let buffertimer = 380
@@ -337,21 +380,13 @@ document.addEventListener("click", ()=>{
   }  
 })
 input.addEventListener("click", ()=>{
-
   if (!audiostarted && clickcount === 1) {
     audiostarted = true
     audiostatus.innerHTML = "&gt;&gt;";
     audioplayer = new Audio(`${window.location.protocol}//${window.location.host}/radio?${(+ new Date())}`)
     audioplayer.play()
     buffercheck()
-    if (!localStorage.getItem("nick")) {
-      input.setAttribute("placeholder", "please type a username then hit enter")
-    }
-    else {
-      input.setAttribute("maxlength", "1000")
-      input.setAttribute("placeholder", "")
-      sendmessage(localStorage.getItem("nick"))
-    }
+    nickfollowup()
   }
 })
 window.addEventListener("resize", ()=> {
