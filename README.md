@@ -4,7 +4,7 @@
 - it is basically a live streaming mp3 server and a chatroom
 - tracks can be added to the live stream by typing in URLs into a chatroom
 - the system will download the songs as they are added and queue it into a playlist
-- it doesn't use icecast/shoutcast
+- it doesn't use icecast/shoutcast, but creates a live mp3 stream simliar to shoutcast
 
 ### requirements
 
