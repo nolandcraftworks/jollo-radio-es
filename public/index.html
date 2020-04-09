@@ -107,6 +107,9 @@ textarea::-webkit-scrollbar {
 .disabled {
   pointer-events:none
 }
+.undone {
+  pointer-events:none
+}
 </style>
 </head>
 <body>
@@ -115,7 +118,7 @@ textarea::-webkit-scrollbar {
   <div id="playlist"></div>
   <div id="room"></div>
   <div id="chat">
-    <textarea class="disabled" id="input" 
+    <textarea class="disabled undone" id="input" 
       autocomplete="off" 
       autocorrect="off" 
       autocapitalize="off"
@@ -324,11 +327,15 @@ let buffercheck = function() {
 //   }
 // })
 let clickcount = 0
-input.addEventListener("click", ()=>{
+document.addEventListener("click", ()=>{
   if (clickcount === 0) {
     clickcount = 1
+    input.classList.remove("undone")
     return
-  }
+  }  
+})
+input.addEventListener("click", ()=>{
+
   if (!audiostarted && clickcount === 1) {
     audiostarted = true
     audiostatus.innerHTML = "&gt;&gt;";
