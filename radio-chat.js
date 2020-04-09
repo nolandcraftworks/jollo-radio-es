@@ -25,6 +25,7 @@ app.handler["message"] = async function(wsc, data) {
       .replace(/\</g, "&lt;")
       .replace(/\>/g, "&gt;")
       .replace(/\"/g, "&quot;")
+      .replace(/\'/g, "&#39;")
       .substring(0,1000)
     
     if (data.length === 0) {
