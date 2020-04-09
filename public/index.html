@@ -258,7 +258,7 @@ let handler = {
         // 12h / expired
         return
       }
-      playlist.insertAdjacentHTML("afterbegin", `<span class="trackspan" data-uuid="${uuid}" data-status="${status}">${nick}:&nbsp;${url}</span>`)    
+      playlist.insertAdjacentHTML("afterbegin", `<span class="trackspan" data-uuid="${uuid}" data-status="${status}">&lt;${nick}&gt;&nbsp;${url}</span>`)    
       playlist.scrollTop = 100000000000  
     }
     catch(e) {
