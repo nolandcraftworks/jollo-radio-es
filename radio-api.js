@@ -5,6 +5,7 @@ const axios = require('axios')
 const util = require('util')
 const uuid = require('node-uuid')
 const exec = util.promisify(require('child_process').exec)
+const { spawn } = require('child_process')
 const fs = require('fs')
 const db = require('./database.js')
 
@@ -24,9 +25,28 @@ const requestprocessingevent = {
   youtubedl: async function(id, urldata, postprocessing) {
     try {
       relaystatus()
-      let data = urldata
-      let string = `youtube-dl --extract-audio --audio-format mp3 --audio-quality 0 --output "tracks/${id}.%(ext)s" ${data}`
-      await exec(string)
+      let data = urldata.substring(0,1000)
+      function respawn(id, url) {
+        console.log(`respawn with ${id} and ${url}`)
+        return new Promise((resolve, reject) => {
+          let blink = `tracks/${id}.%(ext)s`
+          const spawnres = spawn('youtube-dl', [
+            "--extract-audio", 
+            "--audio-format", 
+            "mp3", 
+            "--audio-quality", 
+            "0", 
+            "--output",
+            blink, 
+            url
+          ])
+          spawnres.on('close', (code) => {
+            resolve("done")
+            return
+          })
+        })
+      }  
+      await respawn(id, data)
       const path = `./tracks/${id}.mp3`
       if (!fs.existsSync(path)) {
         return 0
