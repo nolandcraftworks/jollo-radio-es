@@ -22,6 +22,7 @@ let bucket = {
 }
 
 const requestprocessingevent = {
+  
   youtubedl: async function(id, urldata, postprocessing) {
     try {
       relaystatus()
@@ -81,7 +82,25 @@ const requestprocessingevent = {
     catch(e) {
       return 0
     }
+  },
+  
+  mixdown: async function(id, urlidarray, postprocessing) {
+    // try {
+    //   let string = `ffmpeg -i tmp/${urlidarray[0]}.mp3 -i tmp/${urlidarray[1]}.mp3 -filter_complex amix=inputs=2:duration=shortest:dropout_transition=2 "tmp/${id}.mp3"`
+    //   await exec(string)    
+    //   const path = `./tmp/${id}.mp3`
+    //   if (!fs.existsSync(path)) {
+    //     return 0
+    //   }    
+    //   return 1
+    // }
+    // catch(e) {
+    //   return 0
+    // }
+    return 0
   }
+  
+  
 }
 
 async function satisfied(id) {
@@ -207,6 +226,17 @@ const api = {
     }
   },
   
+  random: async function(nick) {
+    
+  //   SELECT url
+  //   FROM tracks
+  //   WHERE url NOT LIKE "mix"
+  //   ORDER BY RAND()
+  //   LIMIT 1
+    
+    return {status: 0}
+  },
+  
   // getalltracks: async function() {
   //   let tracks = await db.all(`
   //     SELECT url, status
@@ -222,6 +252,93 @@ const api = {
   //   return null
   // },
   
+  mix: async function(urls, nick) {
+    
+    //  update for sqlite
+      
+    //  // urls are ["url", "url"]
+    //  // it will eventually have a postprocessing arg as well
+    //  
+    //  let alltracks = {
+    //    0: null,
+    //    1: null
+    //  }
+    //  
+    //  if (urls[0] === "random") {
+    //    let aurl = (await promises.pool(`
+    //      SELECT url
+    //      FROM tracks
+    //      WHERE url NOT LIKE "mix"
+    //      ORDER BY RAND()
+    //      LIMIT 1
+    //    `))[0].url      
+    //    urls[0] = aurl
+    //  }
+    //  
+    //  if (urls[1] === "random") {
+    //    let burl = (await promises.pool(`
+    //      SELECT url
+    //      FROM tracks
+    //      WHERE url NOT LIKE "mix"
+    //      ORDER BY RAND()
+    //      LIMIT 1
+    //    `))[0].url    
+    //    urls[1] = burl
+    //  }
+    //    
+    //  let validate = true
+    //  for (let i=0;i<urls.length;i++) {
+    //    if (!wordIsAValidMusicLink(urls[i])) {
+    //      validate = false
+    //      break
+    //    }      
+    //  }
+    //  if (!validate) {
+    //    return {status: 0}      
+    //  }
+    //  
+    //  validate = true
+    //  
+    //  for (let i=0;i<urls.length;i++) {
+    //    let id = (+ new Date()).toString() + "-" + uuid.v4()
+    //    alltracks[i] = id
+    //    let urldata = urls[i]
+    //    let data = {
+    //      route: "youtubedl",
+    //      urldata,
+    //      postprocessing: null
+    //    }
+    //    newbucketitem(id, data)
+    //    let satisfy = await satisfied(id)
+    //    if (satisfy !== true) {
+    //      validate = false
+    //      break
+    //    }
+    //  }
+    //  if (!validate) {
+    //    return {status: 0}
+    //  }
+    //  
+    //  let id = (+ new Date()).toString() + "-" + uuid.v4()
+    //  let data = {
+    //    route: "mixdown", 
+    //    urldata: [alltracks[0], alltracks[1]],
+    //    postprocessing: null
+    //  }
+    //  
+    //  newbucketitem(id, data)
+    //  let satisfy = await satisfied(id)
+    //  if (satisfy === true) {
+    //    await addentrytodatabase(id, "mix")
+    //    return {status: 1, processed: "mix", id}
+    //  }
+    //  else {
+    //    return {status: 0, processed: "mix"}
+    //  }
+    return {status: 0}
+    
+  },
+  
   next: async function() {
     await axios({
       method: 'post',
@@ -232,16 +349,38 @@ const api = {
       }
     })
     return true
-  },  
-
+  },
+  
   parse: async function(data) {
+    
     let {chat, nick} = data
     let status = null    
-    let url = null
+    
     if (chat === `radio: next`) {
       api.next()
       return status
     }
+    
+    // else if (chat.startsWith("radio: mix ")) {
+    //   chat = chat.slice(11)
+    //   if (chat.length === 0) {
+    //     return status
+    //   }
+    //   chat = chat.split(" ")
+    //   if (chat.length !== 2) {
+    //     return status
+    //   }
+    //   let urls = [chat[0], chat[1]]
+    //   let queue = await api.mix(urls, nick)
+    //   console.log(queue)
+    //   return status
+    // }
+    
+    // else if (chat === "radio: random") {
+    //   return await api.random(nick)
+    // }
+    
+    let url = null
     let array = chat.split(" ")
     for (let i=0;i<array.length;i++) {
       let word = array[i]
@@ -278,12 +417,7 @@ const api = {
     else {
       return {status: 0, processed: url}
     }
-  },
-  
-  incoming: async function(data) {
-    
   }
-  
   
 }
 
