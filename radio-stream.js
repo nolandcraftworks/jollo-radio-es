@@ -30,7 +30,7 @@ const encoder = new lame.Encoder({
   channels: 2,       
   bitDepth: 16,      
   sampleRate: 44100, 
-  bitRate: 128,
+  bitRate: 160,
   outSampleRate: 44100,
   mode: lame.STEREO 
 })
@@ -49,7 +49,7 @@ function transmit(e) {
 
 broadcast.on("data", transmit)
 
-const chunksize = 4000
+const chunksize = 10000
 let currenttrack = null
 let lasttimeout = 250
 var buffer = Buffer.alloc(chunksize)
@@ -75,7 +75,7 @@ async function keepalive() {
   let file = ""
   if (!results || results.length === 0) {
     realtrackplaying = false
-    file = "./wave128.mp3"
+    file = "./wave320.mp3"
     currenttrack = null   
   }
   else {
