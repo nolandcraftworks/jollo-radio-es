@@ -1,4 +1,4 @@
-const maxlisteners = 30
+const maxlisteners = 15
 const ipcport = 48889
 
 let debug = false
