@@ -69,7 +69,7 @@ const requestprocessingevent = {
       let channelval = details.split(" Hz, ")[1].substring(0,6)
       // must force
       //if (multistream || streamval !== "44100" || channelval !== "stereo") {
-      let conversion = `ffmpeg -y -i tracks/${id}.mp3 -map a -ac 2 -ar 44100 -codec:a libmp3lame -b:a 160k -map_metadata -1 tracks/dupe-${id}.mp3`
+      let conversion = `ffmpeg -y -i tracks/${id}.mp3 -map a -ac 2 -ar 44100 -codec:a libmp3lame -b:a 128k -map_metadata -1 tracks/dupe-${id}.mp3`
       await exec(conversion)
       let move = fs.unlinkSync(`tracks/${id}.mp3`)
       let rename = fs.renameSync(`tracks/dupe-${id}.mp3`, `tracks/${id}.mp3`)
