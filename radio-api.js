@@ -55,6 +55,7 @@ const requestprocessingevent = {
         })
       }  
       await respawn(id, data)
+      console.log(`${(+ new Date())} youtubedl done`)
       const path = `./tracks/${id}.mp3`
       if (!fs.existsSync(path)) {
         console.log("return 0")
@@ -62,8 +63,8 @@ const requestprocessingevent = {
       }
       var checkfile = `tracks/${id}.mp3`
       let probestring = `ffprobe ${checkfile}`
-      console.log("probestring done")
       const { stdout, stderr } = await exec(probestring)
+      console.log(`${(+ new Date())} ps done`)
       let details = stderr
       if (!details || details.length === 0) {
         console.log("no details")
@@ -81,6 +82,7 @@ const requestprocessingevent = {
       //if (multistream || streamval !== "44100" || channelval !== "stereo") {
       let conversion = `ffmpeg -y -i tracks/${id}.mp3 -map a -ac 2 -ar 44100 -codec:a libmp3lame -b:a 160k -map_metadata -1 tracks/dupe-${id}.mp3`
       await exec(conversion)
+      console.log(`${(+ new Date())} ffmpeg done`)
       let move = fs.unlinkSync(`tracks/${id}.mp3`)
       let rename = fs.renameSync(`tracks/dupe-${id}.mp3`, `tracks/${id}.mp3`)
       if (!fs.existsSync(path)) {
