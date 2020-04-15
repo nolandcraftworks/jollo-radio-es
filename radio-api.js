@@ -28,7 +28,6 @@ const requestprocessingevent = {
       relaystatus()
       let data = urldata.substring(0,1000)
       function respawn(id, url) {
-        console.log(`respawn with ${id} and ${url}`)
         return new Promise((resolve, reject) => {
           let blink = `tracks/${id}.%(ext)s`
           const spawnres = spawn('youtube-dl', [
@@ -41,7 +40,15 @@ const requestprocessingevent = {
             blink, 
             url
           ])
+          spawnres.on('error', (e) => {
+            console.log("error")
+            console.log(e)
+          })
+          spawnres.stdout.on('data', (data) => {
+            console.log(`stdout: ${data}`);
+          })
           spawnres.on('close', (code) => {
+            console.log("close")
             resolve("done")
             return
           })
@@ -50,13 +57,16 @@ const requestprocessingevent = {
       await respawn(id, data)
       const path = `./tracks/${id}.mp3`
       if (!fs.existsSync(path)) {
+        console.log("return 0")
         return 0
       }
       var checkfile = `tracks/${id}.mp3`
       let probestring = `ffprobe ${checkfile}`
+      console.log("probestring done")
       const { stdout, stderr } = await exec(probestring)
       let details = stderr
       if (!details || details.length === 0) {
+        console.log("no details")
         return 0
       }
       let multistream = false
@@ -80,6 +90,7 @@ const requestprocessingevent = {
       return 1
     }
     catch(e) {
+      console.error(e)
       return 0
     }
   },
