@@ -51,3 +51,12 @@ pm2 start radio-chat.js --name "radio-chat"
 - the mp3 stream is available on `http://localhost:3000/radio`
 - the chatroom uses websockets running on port `9302`
 - the system will also be using using ports `48887-48889` for ipc communication
+
+### controlling the radio
+
+- you can type regular chat text (not just audio urls) in the chatroom
+- if your chat text has an audio url in it (mp3, bandcamp, youtube, soundcloud) it will queue that track
+- you can skip the currently playing song by typing: `radio: next`
+- you can play a random track from the playlist history by typing: `radio: random`
+- you can mix two songs by typing: `radio: mix urla urlb` where `urla` is an audio url and `urlb` is an audio url
+- you can also do something like `radio: mix urla random` or `radio: mix random random` if you want
