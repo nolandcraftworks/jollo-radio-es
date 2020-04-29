@@ -1,6 +1,7 @@
 const ipcport = 48888
 
 let maxresources = 2
+
 const axios = require('axios')
 const util = require('util')
 const uuid = require('node-uuid')
@@ -41,33 +42,28 @@ const requestprocessingevent = {
             url
           ])
           spawnres.on('error', (e) => {
-            console.log("error")
-            console.log(e)
+            console.error(e)
           })
           spawnres.stdout.on('data', (data) => {
-            console.log(`stdout: ${data}`);
+            // console.log(`stdout: ${data}`)
           })
           spawnres.on('close', (code) => {
-            console.log("close")
             resolve("done")
             return
           })
         })
       }  
       await respawn(id, data)
-      console.log(`${(+ new Date())} youtubedl done`)
       const path = `./tracks/${id}.mp3`
       if (!fs.existsSync(path)) {
-        console.log("return 0")
         return 0
       }
       var checkfile = `tracks/${id}.mp3`
       let probestring = `ffprobe ${checkfile}`
       const { stdout, stderr } = await exec(probestring)
-      console.log(`${(+ new Date())} ps done`)
       let details = stderr
       if (!details || details.length === 0) {
-        console.log("no details")
+        // console.error("no details")
         return 0
       }
       let multistream = false
@@ -78,17 +74,13 @@ const requestprocessingevent = {
       }
       let streamval = details.split(" Hz, ")[0].slice(-5)
       let channelval = details.split(" Hz, ")[1].substring(0,6)
-      // must force
-      //if (multistream || streamval !== "44100" || channelval !== "stereo") {
       let conversion = `ffmpeg -y -i tracks/${id}.mp3 -map a -ac 2 -ar 44100 -codec:a libmp3lame -b:a 160k -map_metadata -1 tracks/dupe-${id}.mp3`
       await exec(conversion)
-      console.log(`${(+ new Date())} ffmpeg done`)
       let move = fs.unlinkSync(`tracks/${id}.mp3`)
       let rename = fs.renameSync(`tracks/dupe-${id}.mp3`, `tracks/${id}.mp3`)
       if (!fs.existsSync(path)) {
         return 0
       }      
-      //}
       return 1
     }
     catch(e) {
@@ -98,21 +90,22 @@ const requestprocessingevent = {
   },
   
   mixdown: async function(id, urlidarray, postprocessing) {
-    // try {
-    //   let string = `ffmpeg -i tmp/${urlidarray[0]}.mp3 -i tmp/${urlidarray[1]}.mp3 -filter_complex amix=inputs=2:duration=shortest:dropout_transition=2 "tmp/${id}.mp3"`
-    //   await exec(string)    
-    //   const path = `./tmp/${id}.mp3`
-    //   if (!fs.existsSync(path)) {
-    //     return 0
-    //   }    
-    //   return 1
-    // }
-    // catch(e) {
-    //   return 0
-    // }
+    try {
+      let string = `ffmpeg -i tracks/${urlidarray[0]}.mp3 -i tracks/${urlidarray[1]}.mp3 -filter_complex amix=inputs=2:duration=shortest:dropout_transition=2 "tracks/${id}.mp3"`
+      await exec(string)
+      
+      const path = `./tracks/${id}.mp3`
+      if (!fs.existsSync(path)) {
+        return 0
+      }    
+      return 1
+    }
+    catch(e) {
+      console.error(e)
+      return 0
+    }
     return 0
   }
-  
   
 }
 
@@ -240,14 +233,23 @@ const api = {
   },
   
   random: async function(nick) {
+    let random = (await db.all(`
+      SELECT url
+      FROM tracks
+      WHERE 
+        url NOT LIKE "mix"
+      AND 
+        rowid >= (abs(random()) % (SELECT max(rowid) FROM tracks))
+      LIMIT 1
+    `))
+    if (random && random.length > 0) {
+      let status = await api.queue(random[0].url, nick)
+      return status
+    }
+    else {
+      return {status: 0}
+    }
     
-  //   SELECT url
-  //   FROM tracks
-  //   WHERE url NOT LIKE "mix"
-  //   ORDER BY RAND()
-  //   LIMIT 1
-    
-    return {status: 0}
   },
   
   // getalltracks: async function() {
@@ -258,98 +260,86 @@ const api = {
   //   return tracks
   // },
   
-  // clearplaylist: async function() {
-  //   await db.run(`
-  //     DELETE FROM tracks
-  //   `)
-  //   return null
-  // },
-  
   mix: async function(urls, nick) {
+    // urls are ["url", "url"]
+    // it will eventually have a postprocessing arg as well
     
-    //  update for sqlite
-      
-    //  // urls are ["url", "url"]
-    //  // it will eventually have a postprocessing arg as well
-    //  
-    //  let alltracks = {
-    //    0: null,
-    //    1: null
-    //  }
-    //  
-    //  if (urls[0] === "random") {
-    //    let aurl = (await promises.pool(`
-    //      SELECT url
-    //      FROM tracks
-    //      WHERE url NOT LIKE "mix"
-    //      ORDER BY RAND()
-    //      LIMIT 1
-    //    `))[0].url      
-    //    urls[0] = aurl
-    //  }
-    //  
-    //  if (urls[1] === "random") {
-    //    let burl = (await promises.pool(`
-    //      SELECT url
-    //      FROM tracks
-    //      WHERE url NOT LIKE "mix"
-    //      ORDER BY RAND()
-    //      LIMIT 1
-    //    `))[0].url    
-    //    urls[1] = burl
-    //  }
-    //    
-    //  let validate = true
-    //  for (let i=0;i<urls.length;i++) {
-    //    if (!wordIsAValidMusicLink(urls[i])) {
-    //      validate = false
-    //      break
-    //    }      
-    //  }
-    //  if (!validate) {
-    //    return {status: 0}      
-    //  }
-    //  
-    //  validate = true
-    //  
-    //  for (let i=0;i<urls.length;i++) {
-    //    let id = (+ new Date()).toString() + "-" + uuid.v4()
-    //    alltracks[i] = id
-    //    let urldata = urls[i]
-    //    let data = {
-    //      route: "youtubedl",
-    //      urldata,
-    //      postprocessing: null
-    //    }
-    //    newbucketitem(id, data)
-    //    let satisfy = await satisfied(id)
-    //    if (satisfy !== true) {
-    //      validate = false
-    //      break
-    //    }
-    //  }
-    //  if (!validate) {
-    //    return {status: 0}
-    //  }
-    //  
-    //  let id = (+ new Date()).toString() + "-" + uuid.v4()
-    //  let data = {
-    //    route: "mixdown", 
-    //    urldata: [alltracks[0], alltracks[1]],
-    //    postprocessing: null
-    //  }
-    //  
-    //  newbucketitem(id, data)
-    //  let satisfy = await satisfied(id)
-    //  if (satisfy === true) {
-    //    await addentrytodatabase(id, "mix")
-    //    return {status: 1, processed: "mix", id}
-    //  }
-    //  else {
-    //    return {status: 0, processed: "mix"}
-    //  }
+    let alltracks = {
+      0: null,
+      1: null
+    }
+    
+    if (urls[0] === "random") {
+      let aurl = (await db.all(`
+        SELECT url
+        FROM tracks
+        WHERE 
+          url NOT LIKE "mix"
+        AND 
+          rowid >= (abs(random()) % (SELECT max(rowid) FROM tracks))
+        LIMIT 1
+      `))[0].url
+      urls[0] = aurl
+    }
+    
+    if (urls[1] === "random") {
+      let burl = (await db.all(`
+        SELECT url
+        FROM tracks
+        WHERE 
+          url NOT LIKE "mix"
+        AND 
+          rowid >= (abs(random()) % (SELECT max(rowid) FROM tracks))
+        LIMIT 1
+      `))[0].url
+      urls[1] = burl
+    }
+    let validate = true
+    for (let i=0;i<urls.length;i++) {
+      if (!wordIsAValidMusicLink(urls[i])) {
+        validate = false
+        break
+      }      
+    }
+    if (!validate) {
+      return {status: 0}      
+    }
+    validate = true
+    for (let i=0;i<urls.length;i++) {
+      let id = (+ new Date()).toString() + "-" + uuid.v4()
+      alltracks[i] = id
+      let urldata = urls[i]
+      let data = {
+        route: "youtubedl",
+        urldata,
+        postprocessing: null
+      }
+      newbucketitem(id, data)
+      let satisfy = await satisfied(id)
+      if (satisfy !== true) {
+        validate = false
+        break
+      }
+    }
+    if (!validate) {
+      return {status: 0}
+    }
+    let id = (+ new Date()).toString() + "-" + uuid.v4()
+    let data = {
+      route: "mixdown", 
+      urldata: [alltracks[0], alltracks[1]],
+      postprocessing: null
+    }
+    newbucketitem(id, data)
+    let satisfy = await satisfied(id)
+    if (satisfy === true) {
+      await addentrytodatabase(id, "mix", nick)
+      return {status: 1, processed: "mix", id, nick}
+    }
+    else {
+      return {status: 0, processed: "mix"}
+    }
     return {status: 0}
-    
   },
   
   next: async function() {
@@ -374,25 +364,21 @@ const api = {
       return status
     }
     
-    // else if (chat.startsWith("radio: mix ")) {
-    //   chat = chat.slice(11)
-    //   if (chat.length === 0) {
-    //     return status
-    //   }
-    //   chat = chat.split(" ")
-    //   if (chat.length !== 2) {
-    //     return status
-    //   }
-    //   let urls = [chat[0], chat[1]]
-    //   let queue = await api.mix(urls, nick)
-    //   console.log(queue)
-    //   return status
-    // }
-    
-    // else if (chat === "radio: random") {
-    //   return await api.random(nick)
-    // }
-    
+    else if (chat.startsWith("radio: mix ")) {
+      chat = chat.slice(11)
+      if (chat.length === 0) {
+        return status
+      }
+      chat = chat.split(" ")
+      if (chat.length !== 2) {
+        return status
+      }
+      let urls = [chat[0], chat[1]]
+      return await api.mix(urls, nick)
+    }
+    else if (chat === "radio: random") {
+      return await api.random(nick)
+    }
     let url = null
     let array = chat.split(" ")
     for (let i=0;i<array.length;i++) {
@@ -409,6 +395,7 @@ const api = {
       status = await api.queue(url, nick)
     }
     return status
+    
   },
   
   queue: async function(url, nick) {

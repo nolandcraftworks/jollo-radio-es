@@ -74,15 +74,10 @@ app.server = {
   
   broadcast: (json) => {
     app.server.clients.forEach((client) => {
-      client.sendUTF(JSON.stringify(json))
-    })
-  },
-  
-  broadcastexceptme: (wsc, json) => {
-    app.server.clients.forEach((client, key) => {
-      if (wsc.socket._peername.port !== key) {
-        client.sendUTF(JSON.stringify(json))
+      if (requirepassword && json && json.type === "message" && !client.unlocked) {
+        return
       }
+      client.sendUTF(JSON.stringify(json))
     })
   },
   
@@ -101,6 +96,7 @@ app.server = {
       let unlocked = false
       let nick = null
       const wsc = request.accept(null, request.origin)
+      wsc.unlocked = false
       clients.set(wsc.socket._peername.port, wsc)
       let tracks = await db.all(`
         SELECT url, uuid, status, nick
@@ -110,17 +106,18 @@ app.server = {
       `)
       tracks = tracks.reverse()
       app.server.send(wsc, {type: "songhistory", data:tracks})
-      let statement = `
-        SELECT *
-        FROM chat
-        ORDER BY rowid DESC
-        LIMIT 50
-      `
-      let history = await db.all(statement)
-      history = history.reverse()
+      if (!requirepassword) {
+        var statement = `
+          SELECT *
+          FROM chat
+          ORDER BY rowid DESC
+          LIMIT 50
+        `
+        var history = await db.all(statement)
+        history = history.reverse()
+        app.server.send(wsc, {type: "messagehistory", data:history})
+      }
       app.server.send(wsc, {type: "position", data:currenttrack})
-      app.server.send(wsc, {type: "messagehistory", data:history})
-      
       let response = await axios({
         method: 'post',
         url: 'http://localhost:48888/api',
@@ -132,7 +129,7 @@ app.server = {
       if (response && response.data) {
         api.status(response.data)
       }      
-      wsc.on('message', function(msg) {
+      wsc.on('message', async function(msg) {
         try {
           let json = JSON.parse(msg.utf8Data)
           if (!nick) {
@@ -148,10 +145,19 @@ app.server = {
           }
           else {
             if (requirepassword && !unlocked) {
-              console.log(json)
               if (json && json.type === "message" && json.data === password) {
                 unlocked = true
+                wsc.unlocked = true
                 app.server.send(wsc, {type: "unlocked", data:password})
+                var statement = `
+                  SELECT *
+                  FROM chat
+                  ORDER BY rowid DESC
+                  LIMIT 50
+                `
+                var history = await db.all(statement)
+                history = history.reverse()
+                app.server.send(wsc, {type: "messagehistory", data:history})                
                 return
               }
             }

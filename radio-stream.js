@@ -3,8 +3,6 @@ const ipcport = 48889
 
 let debug = false
 
-let oob = Number.MAX_SAFE_INTEGER - 10000
-
 let nextflag = false
 let realtrackplaying = false
 let realfilename = null
