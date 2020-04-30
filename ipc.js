@@ -63,6 +63,7 @@ module.exports = (api, ipcport) => {
         return
       }
       catch(e) {
+        console.error(e)
         res.writeHead(500)
         res.end()
         return

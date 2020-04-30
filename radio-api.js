@@ -2,6 +2,11 @@ const ipcport = 48888
 
 let maxresources = 2
 
+const notify = {
+  irc: true,
+  webchat: false
+}
+
 const axios = require('axios')
 const util = require('util')
 const uuid = require('node-uuid')
@@ -198,7 +203,7 @@ async function addentrytodatabase(id, url, nick) {
       uuid, 
       url,
       status,
-      nick
+      nick  
     )
     VALUES (
       "${id}",
@@ -208,6 +213,41 @@ async function addentrytodatabase(id, url, nick) {
     )
   `)
   return      
+}
+
+const notifyclientofevent = async function(data) {
+  let event = {
+    type: 'event',
+    body: {
+      type: data.type,
+      body: data.body
+    }
+  }
+  if (notify.irc) {
+    try {
+      await axios({
+        method: 'post',
+        url: 'http://localhost:48886/api',
+        data: event
+      })
+    }
+    catch(e) {
+      
+    }
+  }
+  if (notify.webchat) {
+    try {
+      await axios({
+        method: 'post',
+        url: 'http://localhost:48887/api',
+        data: event
+      })
+    }
+    catch(e) {
+      
+    }
+  }
+  return null
 }
 
 const api = {
@@ -233,6 +273,8 @@ const api = {
   },
   
   random: async function(nick) {
+    let status = 0
+    let processed = ""
     let random = (await db.all(`
       SELECT url
       FROM tracks
@@ -242,14 +284,8 @@ const api = {
         rowid >= (abs(random()) % (SELECT max(rowid) FROM tracks))
       LIMIT 1
     `))
-    if (random && random.length > 0) {
-      let status = await api.queue(random[0].url, nick)
-      return status
-    }
-    else {
-      return {status: 0}
-    }
-    
+    await api.queue(random[0].url, nick)
+    return null
   },
   
   // getalltracks: async function() {
@@ -261,6 +297,10 @@ const api = {
   // },
   
   mix: async function(urls, nick) {
+    
+    let status = 0
+    let processed = "mix"
+    
     // urls are ["url", "url"]
     // it will eventually have a postprocessing arg as well
     
@@ -294,6 +334,7 @@ const api = {
       `))[0].url
       urls[1] = burl
     }
+    
     let validate = true
     for (let i=0;i<urls.length;i++) {
       if (!wordIsAValidMusicLink(urls[i])) {
@@ -302,11 +343,20 @@ const api = {
       }      
     }
     if (!validate) {
-      return {status: 0}      
+      notifyclientofevent({
+        type: "mix",
+        body: {
+          status: 0,
+          processed: "mix"
+        }
+      })
+      return null     
     }
+    
     validate = true
+    
     for (let i=0;i<urls.length;i++) {
-      let id = (+ new Date()).toString() + "-" + uuid.v4()
+      var id = (+ new Date()).toString() + "-" + uuid.v4()
       alltracks[i] = id
       let urldata = urls[i]
       let data = {
@@ -321,10 +371,19 @@ const api = {
         break
       }
     }
+    
     if (!validate) {
-      return {status: 0}
+      notifyclientofevent({
+        type: "mix",
+        body: {
+          status: 0,
+          processed: "mix"
+        }
+      })
+      return null
     }
-    let id = (+ new Date()).toString() + "-" + uuid.v4()
+    
+    var id = (+ new Date()).toString() + "-" + uuid.v4()
     let data = {
       route: "mixdown", 
       urldata: [alltracks[0], alltracks[1]],
@@ -332,14 +391,22 @@ const api = {
     }
     newbucketitem(id, data)
     let satisfy = await satisfied(id)
+    
     if (satisfy === true) {
       await addentrytodatabase(id, "mix", nick)
-      return {status: 1, processed: "mix", id, nick}
+      status = 1
     }
-    else {
-      return {status: 0, processed: "mix"}
-    }
-    return {status: 0}
+    notifyclientofevent({
+      type: "mix",
+      body: {
+        status,
+        processed,
+        id,
+        nick
+      }
+    })  
+    
+    return null
   },
   
   next: async function() {
@@ -351,34 +418,40 @@ const api = {
         body: null
       }
     })
-    return true
+    notifyclientofevent({
+      type: "next",
+      body: null
+    })    
+    return null
   },
   
   parse: async function(data) {
-    
+    let status = 0
+    let processed = ""
     let {chat, nick} = data
-    let status = null    
-    
     if (chat === `radio: next`) {
       api.next()
-      return status
+      return null
     }
-    
     else if (chat.startsWith("radio: mix ")) {
       chat = chat.slice(11)
       if (chat.length === 0) {
-        return status
+        return null
       }
       chat = chat.split(" ")
       if (chat.length !== 2) {
-        return status
+        return null
       }
       let urls = [chat[0], chat[1]]
-      return await api.mix(urls, nick)
+      await api.mix(urls, nick)
+      return null
     }
+    
     else if (chat === "radio: random") {
-      return await api.random(nick)
+      await api.random(nick)
+      return null
     }
+    
     let url = null
     let array = chat.split(" ")
     for (let i=0;i<array.length;i++) {
@@ -392,14 +465,16 @@ const api = {
       nick = "-"
     }
     if (url) {
-      status = await api.queue(url, nick)
+      await api.queue(url, nick)
     }
-    return status
-    
+    return null
   },
   
   queue: async function(url, nick) {
+    let status = 0
+    let processed = url
     if (!wordIsAValidMusicLink(url)) {
+      console.log("return nonvalid")
       return {status: 0}
     }
     let id = (+ new Date()).toString() + "-" + uuid.v4()
@@ -412,13 +487,18 @@ const api = {
     let satisfy = await satisfied(id)
     if (satisfy === true) {
       await addentrytodatabase(id, url, nick)
-      return {status: 1, processed: url, id, nick}
+      status = 1
     }
-    else {
-      return {status: 0, processed: url}
-    }
+    notifyclientofevent({
+      type: "queue",
+      body: {
+        status,
+        processed,
+        id,
+        nick
+      }
+    })
   }
-  
 }
 
 require('./ipc.js')(api, ipcport)

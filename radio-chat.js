@@ -46,21 +46,25 @@ app.handler["message"] = async function(wsc, data) {
       nick: wsc.nick,
       chat: data
     }})
-    let response = await axios({
-      method: 'post',
-      timeout: 60 * 10 * 1000,
-      url: 'http://localhost:48888/api',
-      data: {
-        type: 'parse',
-        body: {
-          nick: wsc.nick,
-          chat: blurb
+    
+    try {
+      await axios({
+        method: 'post',
+        timeout: 120 * 10 * 1000,
+        url: 'http://localhost:48888/api',
+        data: {
+          type: 'parse',
+          body: {
+            nick: wsc.nick,
+            chat: blurb
+          }
         }
-      }
-    })
-    if (response && response.data) {
-      api.parse(response.data)
+      })
     }
+    catch(e) {
+      console.error(e)
+    }
+    
   }
   catch(e) {
     // console.error(e)
@@ -178,6 +182,60 @@ app.server = {
 }
 
 api = {
+  event: (data) => {    
+    let {type, body} = data
+    let linechat = async function(status, chat) {
+      if (!status) {
+        chat = `<strike>${chat}</strike>`
+      }
+      let statement = `
+        INSERT INTO chat (
+          nick,
+          chat
+        )
+        VALUES (
+          "${db.mres("/")}",
+          "${db.mres(chat)}"
+        )
+      `
+      await db.run(statement)          
+      app.server.broadcast({type: "message", data: {
+        nick: "/",
+        chat
+      }})
+    }
+    let events = {
+      next: () => {
+        linechat(true, "...")
+      },
+      queue: (data) => {
+        linechat(data.status, data.processed)
+        if (data.status === 1) {
+          app.server.broadcast({type: "song", data:{
+            url: data.processed, 
+            status: data.status, 
+            uuid: data.id,
+            nick: data.nick
+          }})
+        }
+        return null
+      },
+      mix: (data) => {
+        linechat(data.status, "mix") 
+        if (data.status === 1) {
+          app.server.broadcast({type: "song", data:{
+            url: "mix", 
+            status: data.status, 
+            uuid: data.id,
+            nick: data.nick
+          }})
+        }
+        return null
+      }
+    }
+    events[type] && events[type](body)
+    return null
+  },
   status: (data) => {
     app.server.broadcast({type: "status", data})
     return null
@@ -188,43 +246,6 @@ api = {
       app.server.broadcast({type: "position", data: currenttrack})      
     }    
     return null
-  },
-  parse: (data) => {
-    if (data !== null) {
-      let resp = async function(body) {
-        let statement = `
-          INSERT INTO chat (
-            nick,
-            chat
-          )
-          VALUES (
-            "${db.mres("/")}",
-            "${db.mres(body)}"
-          )
-        `
-        await db.run(statement)          
-        app.server.broadcast({type: "message", data: {
-          nick: "/",
-          chat: body
-        }})
-      }
-      let {processed, id, status, nick} = data
-      let body
-      if (data.status === 0) {
-        body = `<strike>${processed}</strike>`
-      }
-      else {
-        body = processed
-        app.server.broadcast({type: "song", data:{
-          url: processed, 
-          status, 
-          uuid: id,
-          nick
-        }})
-      }
-      resp(body)
-    }
-    return
   }
 }
 
