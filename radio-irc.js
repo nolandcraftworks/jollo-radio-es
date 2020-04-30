@@ -6,9 +6,11 @@ let red = `${blip}5`
 let purple = `${blip}6`
 let orange = `${blip}7`
 
+let mainchannel = '#jfjfoiwaejf'
+
 var config = {
   userName: 'radio',
-  channels: ['#jfjfoiwaejf'],
+  channels: [mainchannel],
   server: 'irc.jollo.org',
   port: 9999,
   secure: true,
@@ -30,41 +32,30 @@ nbod.addListener('error', function(message) {})
 
 let api = {
   event: (data) => {
-    console.log(data)
-    return null
+    let {type, body} = data
     let events = {
       next: () => {
+        nbod.say(mainchannel, `${purple}...`)
         return null
-        return `${purple}...`
-      },
-      random: (data) => {
-        console.log("rando---")
-        console.log(data)
-        return null
-
       },
       queue: (data) => {
-        console.log("que---")
-        console.log(data)
-        return null
         if (data.status === 1) {
-          return `${green}${data.processed}`
+          nbod.say(mainchannel, `${green}${data.processed}`)
         }
         else {
-          return `${red}${data.processed}`
+          nbod.say(mainchannel, `${red}${data.processed}`)
         }
       },
       mix: (data) => {
-        console.log(data)
-        return null
         if (data.status === 1) {
-          return `${green}mixed`
+          nbod.say(mainchannel, `${green}mix`)
         }
         else {
-          return `${red}xxxxx`
-        }  
+          nbod.say(mainchannel, `${red}xxx`)
+        }
       }
     }
+    events[type] && events[type](body)
   }
 }
 
