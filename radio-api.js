@@ -3,8 +3,8 @@ const ipcport = 48888
 let maxresources = 2
 
 const notify = {
-  irc: true,
-  webchat: false
+  irc: false,
+  webchat: true
 }
 
 const axios = require('axios')

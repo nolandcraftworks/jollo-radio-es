@@ -6,7 +6,7 @@ let red = `${blip}5`
 let purple = `${blip}6`
 let orange = `${blip}7`
 
-let mainchannel = '#jfjfoiwaejf'
+let mainchannel = '#radio2'
 
 var config = {
   userName: 'radio',
