@@ -37,7 +37,7 @@ function purgeold() {
 
 async function updateyt() {
   try {
-    let string = `sudo youtube-dl -U`
+    let string = `sudo youtube-dl -U  && youtube-dl --rm-cache-dir`
     const { stdout, stderr } = await exec(string)  
   }
   catch(e) {
