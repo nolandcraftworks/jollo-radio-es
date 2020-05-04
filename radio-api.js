@@ -34,7 +34,8 @@ const requestprocessingevent = {
           const spawnres = spawn('youtube-dl', [
             "--extract-audio", 
             "--audio-format", 
-            "mp3", 
+            "mp3",
+            "--no-playlist",
             "--audio-quality", 
             "0", 
             "--output",
@@ -45,9 +46,10 @@ const requestprocessingevent = {
             console.error(e)
           })
           spawnres.stdout.on('data', (data) => {
-            // console.log(`stdout: ${data}`)
+            console.log(`stdout: ${data}`)
           })
           spawnres.on('close', (code) => {
+            console.log("close")
             resolve("done")
             return
           })
