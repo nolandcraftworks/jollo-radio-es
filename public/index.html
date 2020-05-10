@@ -246,7 +246,7 @@ let handler = {
   },
   message: (message) => {
     let {nick, chat} = message
-    let readytoscroll = (room.scrollTop === (room.scrollHeight - room.offsetHeight))
+    let readytoscroll = (~~(room.scrollTop) === ~~(room.scrollHeight - room.offsetHeight))
     room.insertAdjacentHTML("beforeend", `<span>&lt;${nick}&gt; ${chat}</span>`)
     if (!finishedloadinghistory) {
       room.scrollTop = 100000000000
